@@ -13,6 +13,15 @@ func NewItemRepository(db *database.DbHandler) *ItemRepository {
 	return &ItemRepository{db: db}
 }
 
+func (r *ItemRepository) Get() ([]models.Item, error) {
+	rows := []models.Item{
+		{ID: 1, Name: "Item 1", Price: 100, Quantity: 1},
+		{ID: 2, Name: "Item 2", Price: 200, Quantity: 1},
+		{ID: 3, Name: "Item 3", Price: 300, Quantity: 1},
+	}
+	return rows, nil
+}
+
 func (r *ItemRepository) GetByID(id uint64) (*models.Item, error) {
 	row := r.db.GetByID(id)
 	return &models.Item{ID: row.ID, Name: "test", Price: 100, Quantity: 1}, nil
