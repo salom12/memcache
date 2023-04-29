@@ -70,11 +70,11 @@ cache.Delete(key)
 
 The cache is designed to use different eviction policies to manage its size. The following eviction policies are currently supported:
 
-SimpleEviction: a simple policy that removes the first item in the cache
-LRUEviction: the least recently used item is removed from the cache when the cache is full
-LFUEviction: the least frequently used item is removed from the cache when the cache is full
-RandomEviction: a randomly selected item is removed from the cache when the cache is full
-LRUKEviction: the least recently used item among the K least frequently used items in the cache is removed when the cache is full.
+- **SimpleEviction**: a simple policy that removes the first item in the cache
+- **LRUEviction**: the least recently used item is removed from the cache when the cache is full
+- **LFUEviction**: the least frequently used item is removed from the cache when the cache is full
+- **RandomEviction**: a randomly selected item is removed from the cache when the cache is full
+- **LRUKEviction**: the least recently used item among the K least frequently used items in the cache is removed when the cache is full.
 
 To use an eviction policy, create an instance of the desired policy and pass it to the Cache object
 
