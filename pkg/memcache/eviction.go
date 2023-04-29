@@ -1,6 +1,9 @@
 package memcache
 
-import "time"
+import (
+	"math/rand"
+	"time"
+)
 
 type EvictionPolicy interface {
 	Evict(c *Cache)
@@ -60,4 +63,32 @@ func (e *LFUEviction) Evict(c *Cache) {
 	if minKey != "" {
 		delete(c.data, minKey)
 	}
+}
+
+// RandomEviction The Random eviction policy evicts a randomly selected item from the cache when the cache is full.
+type RandomEviction struct {
+}
+
+func (e *RandomEviction) Evict(c *Cache) {
+	// Select a random item from the cache and remove it
+
+	if len(c.data) == 0 {
+		return
+	}
+
+	rand.Seed(time.Now().UnixNano())
+	randomIndex := rand.Intn(len(c.data))
+
+	var key string
+	i := 0
+	for k := range c.data {
+		if i == randomIndex {
+			key = k
+			break
+		}
+		i++
+	}
+
+	delete(c.data, key)
+
 }
