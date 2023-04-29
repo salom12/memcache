@@ -10,12 +10,15 @@ type Cache struct {
 	data    map[string]any
 	maxSize int
 	mutex   sync.Mutex
+
+	evictionPolicy EvictionPolicy
 }
 
 func NewCache(maxSize int) *Cache {
 	return &Cache{
-		data:    make(map[string]any),
-		maxSize: maxSize,
+		data:           make(map[string]any),
+		maxSize:        maxSize,
+		evictionPolicy: &SimpleEviction{},
 	}
 }
 
@@ -50,9 +53,5 @@ func (c *Cache) Delete(key string) {
 }
 
 func (c *Cache) Evict() {
-	// eviction policy example, remove the first item in the cache
-	for key := range c.data {
-		delete(c.data, key)
-		return
-	}
+	c.evictionPolicy.Evict(c)
 }
