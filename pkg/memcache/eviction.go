@@ -39,3 +39,25 @@ func (e *LRUEviction) Evict(c *Cache) {
 	// Delete the least recently used item from the cache
 	delete(c.data, minKey)
 }
+
+// LFUEviction The LFU eviction policy evicts the least frequently used item from the cache when the cache is full.
+type LFUEviction struct {
+}
+
+func (e *LFUEviction) Evict(c *Cache) {
+	// Find the least frequently used item and remove it from the cache
+	var minAccessCount int
+	var minKey string
+
+	// Find the item with the minimum access count
+	for key, value := range c.data {
+		if minKey == "" || value.accessCount < minAccessCount {
+			minAccessCount = value.accessCount
+			minKey = key
+		}
+	}
+	// Delete the least frequently used item
+	if minKey != "" {
+		delete(c.data, minKey)
+	}
+}
