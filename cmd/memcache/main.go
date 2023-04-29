@@ -5,9 +5,11 @@ import (
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
+	"github.com/salom12/memcache/internal/cache"
 	"github.com/salom12/memcache/internal/database"
 	"github.com/salom12/memcache/internal/handlers"
 	"github.com/salom12/memcache/internal/repositories"
+	"github.com/salom12/memcache/pkg/memcache"
 )
 
 func main() {
@@ -15,6 +17,9 @@ func main() {
 	if err := database.InitDB(); err != nil {
 		log.Fatal(err)
 	}
+
+	// init memcache
+	cache.InitMemcache(10, &memcache.LFUEviction{})
 
 	// create echo instance
 	e := echo.New()
