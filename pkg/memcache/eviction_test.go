@@ -66,3 +66,51 @@ func TestLFUEviction(t *testing.T) {
 		t.Errorf("Expected item5 to be in cache, but got error: %v", err)
 	}
 }
+
+func TestLRUKEviction(t *testing.T) {
+	// Create a new cache with LRU-K eviction policy
+	cache := NewCache(4, &LRUKEviction{k: 2})
+
+	// Add items to the cache
+	cache.Set("a", 1)
+	cache.Set("b", 2)
+	cache.Set("c", 3)
+	cache.Set("d", 4)
+
+	// Access item "a" to increase its access count
+	cache.Get("a")
+
+	// Add new items to the cache
+	cache.Set("e", 5)
+	cache.Set("f", 6)
+
+	// Check that item "b" was evicted due to being least frequently used
+	if _, err := cache.Get("b"); err == nil {
+		t.Error("Expected item 'b' to be evicted, but it was found in cache")
+	}
+
+	// Check that item "d" was evicted due to being least recently used among the K least frequently used items
+	if _, err := cache.Get("d"); err == nil {
+		t.Error("Expected item 'd' to be evicted, but it was found in cache")
+	}
+
+	// Check that item "a" is still in the cache
+	if _, err := cache.Get("a"); err != nil {
+		t.Error("Expected item 'a' to be in cache, but it was evicted")
+	}
+
+	// Check that item "c" is still in the cache
+	if _, err := cache.Get("c"); err != nil {
+		t.Error("Expected item 'c' to be in cache, but it was evicted")
+	}
+
+	// Check that item "e" is still in the cache
+	if _, err := cache.Get("e"); err != nil {
+		t.Error("Expected item 'e' to be in cache, but it was evicted")
+	}
+
+	// Check that item "f" is still in the cache
+	if _, err := cache.Get("f"); err != nil {
+		t.Error("Expected item 'f' to be in cache, but it was evicted")
+	}
+}
