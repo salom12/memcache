@@ -1,5 +1,7 @@
 package memcache
 
+import "time"
+
 type EvictionPolicy interface {
 	Evict(c *Cache)
 }
@@ -15,4 +17,25 @@ func (e *SimpleEviction) Evict(c *Cache) {
 		delete(c.data, key)
 		return
 	}
+}
+
+// LRUEviction The LRU eviction policy evicts the least recently used item from the cache when the cache is full.
+type LRUEviction struct {
+}
+
+func (e *LRUEviction) Evict(c *Cache) {
+	// Find the least recently used item and remove it from the cache
+	minAccessTime := time.Now()
+	var minKey string
+
+	// Find the least recently used item by iterating over the cache
+	for key, value := range c.data {
+		if value.lastAccess.Before(minAccessTime) {
+			minAccessTime = value.lastAccess
+			minKey = key
+		}
+	}
+
+	// Delete the least recently used item from the cache
+	delete(c.data, minKey)
 }
