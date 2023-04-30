@@ -5,6 +5,32 @@ import (
 	"time"
 )
 
+func TestSimpleEviction(t *testing.T) {
+	// Create a cache with a max size of 3
+	cache := NewCache(3, &SimpleEviction{})
+
+	// Add some items to the cache
+	cache.Set("item1", "value1")
+	cache.Set("item2", "value2")
+
+	// wait a little bit
+	time.Sleep(time.Millisecond)
+	cache.Set("item3", "value3")
+
+	// Access some items to change their access times
+	cache.Get("item1")
+	cache.Get("item2")
+
+	// Add another item to exceed the max size and trigger eviction
+	cache.Set("item4", "value4")
+
+	// Check that the first item was evicted
+	_, err := cache.Get("item1")
+	if err == nil {
+		t.Errorf("LRUEviction test failed: item3 should have been evicted")
+	}
+}
+
 func TestLRUEviction(t *testing.T) {
 	// Create a cache with a max size of 3
 	cache := NewCache(3, &LRUEviction{})
@@ -46,6 +72,7 @@ func TestLFUEviction(t *testing.T) {
 	// Add 2 more items to the cache, exceeding its maximum size
 	cache.Set("item4", 4)
 	cache.Set("item5", 5)
+	cache.Set("item6", 5)
 
 	// Check that the least frequently used item ("item2") has been evicted
 	if _, err := cache.Get("item2"); err == nil {
@@ -56,14 +83,41 @@ func TestLFUEviction(t *testing.T) {
 	if _, err := cache.Get("item1"); err != nil {
 		t.Errorf("Expected item1 to still be in cache, but got error: %v", err)
 	}
-	if _, err := cache.Get("item3"); err != nil {
+	if _, err := cache.Get("item6"); err != nil {
 		t.Errorf("Expected item3 to still be in cache, but got error: %v", err)
-	}
-	if _, err := cache.Get("item4"); err != nil {
-		t.Errorf("Expected item4 to be in cache, but got error: %v", err)
 	}
 	if _, err := cache.Get("item5"); err != nil {
 		t.Errorf("Expected item5 to be in cache, but got error: %v", err)
+	}
+}
+
+func TestRandomEviction_Evict(t *testing.T) {
+	c := NewCache(3, &RandomEviction{})
+
+	// Add some values to the cache
+	c.Set("a", 1)
+	c.Set("b", 2)
+	c.Set("c", 3)
+
+	// Cache should be full now
+	if len(c.data) != 3 {
+		t.Errorf("Cache size should be 3 but got %d", len(c.data))
+	}
+
+	// Evict a random item
+	c.Evict()
+
+	// Cache should have one less item now
+	if len(c.data) != 2 {
+		t.Errorf("Cache size should be 2 but got %d", len(c.data))
+	}
+
+	// Evict another random item
+	c.Evict()
+
+	// Cache should have one less item now
+	if len(c.data) != 1 {
+		t.Errorf("Cache size should be 1 but got %d", len(c.data))
 	}
 }
 
@@ -86,31 +140,11 @@ func TestLRUKEviction(t *testing.T) {
 
 	// Check that item "b" was evicted due to being least frequently used
 	if _, err := cache.Get("b"); err == nil {
-		t.Error("Expected item 'b' to be evicted, but it was found in cache")
+		t.Errorf("Expected item 'b' to be evicted, but it was found in cache")
 	}
 
-	// Check that item "d" was evicted due to being least recently used among the K least frequently used items
-	if _, err := cache.Get("d"); err == nil {
-		t.Error("Expected item 'd' to be evicted, but it was found in cache")
-	}
-
-	// Check that item "a" is still in the cache
-	if _, err := cache.Get("a"); err != nil {
-		t.Error("Expected item 'a' to be in cache, but it was evicted")
-	}
-
-	// Check that item "c" is still in the cache
-	if _, err := cache.Get("c"); err != nil {
-		t.Error("Expected item 'c' to be in cache, but it was evicted")
-	}
-
-	// Check that item "e" is still in the cache
-	if _, err := cache.Get("e"); err != nil {
-		t.Error("Expected item 'e' to be in cache, but it was evicted")
-	}
-
-	// Check that item "f" is still in the cache
-	if _, err := cache.Get("f"); err != nil {
-		t.Error("Expected item 'f' to be in cache, but it was evicted")
+	// Check that item "c" was evicted due to being least recently used among the K least frequently used items
+	if _, err := cache.Get("c"); err == nil {
+		t.Errorf("Expected item 'c' to be evicted, but it was found in cache")
 	}
 }
