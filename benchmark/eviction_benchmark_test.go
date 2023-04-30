@@ -41,7 +41,7 @@ func BenchmarkLFUEviction(b *testing.B) {
 }
 
 func BenchmarkLRUKEviction(b *testing.B) {
-	cache := memcache.NewCache(100, &memcache.LRUKEviction{})
+	cache := memcache.NewCache(100, &memcache.LRUKEviction{K: 2})
 
 	for i := 0; i < b.N; i++ {
 		cache.Set(fmt.Sprintf("key%d", i), fmt.Sprintf("value%d", i))

@@ -131,22 +131,22 @@ func (e *RandomEviction) Evict(c *Cache) error {
 type LRUKEviction struct {
 	// Fields specific to LRU-K eviction policy
 	// k is a parameter that determines how many items should be kept in the cache before they are considered for eviction
-	k int
+	K int
 }
 
 func (e *LRUKEviction) Evict(c *Cache) error {
 	// Find the K least frequently used items
-	kItems := make([]CacheValue, 0, e.k)
+	kItems := make([]CacheValue, 0, e.K)
 	for _, key := range c.keys {
 		value, ok := c.data[key]
 		if !ok {
 			return fmt.Errorf("key %s does not exist in cache", key)
 		}
 		k := len(kItems)
-		if k < e.k {
+		if k < e.K {
 			// Fill up the k-items list until we have K items
 			kItems = append(kItems, value)
-			if len(kItems) == e.k {
+			if len(kItems) == e.K {
 				// Sort the k-items list in ascending order of access count
 				sort.Slice(kItems, func(i, j int) bool {
 					return kItems[i].accessCount < kItems[j].accessCount
