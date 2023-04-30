@@ -1,33 +1,45 @@
 package memcache
 
 import (
+	"fmt"
 	"math/rand"
+	"sort"
 	"time"
 )
 
 type EvictionPolicy interface {
-	Evict(c *Cache)
+	Evict(c *Cache) error
 }
 
 // SimpleEviction a simple eviction policy
 type SimpleEviction struct {
 }
 
-func (e *SimpleEviction) Evict(c *Cache) {
+func (e *SimpleEviction) Evict(c *Cache) error {
 	// implementation for a simple eviction policy
 	// For example, remove the first item in the cache
-	for key := range c.data {
-		delete(c.data, key)
-		return
+
+	if len(c.keys) == 0 {
+		return fmt.Errorf("cache is empty")
 	}
+
+	for _, key := range c.keys {
+		delete(c.data, key)
+		return nil
+	}
+	return nil
 }
 
 // LRUEviction The LRU eviction policy evicts the least recently used item from the cache when the cache is full.
 type LRUEviction struct {
 }
 
-func (e *LRUEviction) Evict(c *Cache) {
+func (e *LRUEviction) Evict(c *Cache) error {
 	// Find the least recently used item and remove it from the cache
+	if len(c.keys) == 0 {
+		return fmt.Errorf("cache is empty")
+	}
+
 	minAccessTime := time.Now()
 	var minKey string
 
@@ -41,55 +53,77 @@ func (e *LRUEviction) Evict(c *Cache) {
 
 	// Delete the least recently used item from the cache
 	delete(c.data, minKey)
+
+	// Remove the key from the keys slice
+	for i, key := range c.keys {
+		if key == minKey {
+			c.keys = append(c.keys[:i], c.keys[i+1:]...)
+			break
+		}
+	}
+
+	return nil
 }
 
 // LFUEviction The LFU eviction policy evicts the least frequently used item from the cache when the cache is full.
 type LFUEviction struct {
 }
 
-func (e *LFUEviction) Evict(c *Cache) {
+func (e *LFUEviction) Evict(c *Cache) error {
 	// Find the least frequently used item and remove it from the cache
+	if len(c.keys) == 0 {
+		return fmt.Errorf("cache is empty")
+	}
+
 	var minAccessCount int
 	var minKey string
 
 	// Find the item with the minimum access count
-	for key, value := range c.data {
-		if minKey == "" || value.accessCount < minAccessCount {
+	for _, key := range c.keys {
+		value, exists := c.data[key]
+		if exists && (minKey == "" || value.accessCount < minAccessCount) {
 			minAccessCount = value.accessCount
 			minKey = key
 		}
 	}
+
 	// Delete the least frequently used item
 	if minKey != "" {
 		delete(c.data, minKey)
+
+		// Remove the key from the keys slice
+		for i, k := range c.keys {
+			if k == minKey {
+				c.keys = append(c.keys[:i], c.keys[i+1:]...)
+				break
+			}
+		}
 	}
+
+	return nil
 }
 
 // RandomEviction The Random eviction policy evicts a randomly selected item from the cache when the cache is full.
 type RandomEviction struct {
 }
 
-func (e *RandomEviction) Evict(c *Cache) {
+func (e *RandomEviction) Evict(c *Cache) error {
 	// Select a random item from the cache and remove it
 
-	if len(c.data) == 0 {
-		return
+	if len(c.keys) == 0 {
+		return fmt.Errorf("cache is empty")
 	}
 
 	rand.Seed(time.Now().UnixNano())
-	randomIndex := rand.Intn(len(c.data))
+	randomIndex := rand.Intn(len(c.keys))
 
-	var key string
-	i := 0
-	for k := range c.data {
-		if i == randomIndex {
-			key = k
-			break
-		}
-		i++
-	}
+	key := c.keys[randomIndex]
 
 	delete(c.data, key)
+
+	// Remove the key from the keys slice
+	c.keys = append(c.keys[:randomIndex], c.keys[randomIndex+1:]...)
+	return nil
 
 }
 
@@ -100,39 +134,60 @@ type LRUKEviction struct {
 	k int
 }
 
-func (e *LRUKEviction) Evict(c *Cache) {
-	// Implementation of LRU-K eviction policy
-	// Find the K least frequently used items in the cache and then remove the least recently used item among them
-	var leastFrequentKeys []string
-	for i := 0; i < e.k; i++ {
-		var leastAccessCount int
-		var leastAccessKey string
-		for key, value := range c.data {
-			if i == 0 || value.accessCount < leastAccessCount {
-				leastAccessCount = value.accessCount
-				leastAccessKey = key
+func (e *LRUKEviction) Evict(c *Cache) error {
+	// Find the K least frequently used items
+	kItems := make([]CacheValue, 0, e.k)
+	for _, key := range c.keys {
+		value, ok := c.data[key]
+		if !ok {
+			return fmt.Errorf("key %s does not exist in cache", key)
+		}
+		k := len(kItems)
+		if k < e.k {
+			// Fill up the k-items list until we have K items
+			kItems = append(kItems, value)
+			if len(kItems) == e.k {
+				// Sort the k-items list in ascending order of access count
+				sort.Slice(kItems, func(i, j int) bool {
+					return kItems[i].accessCount < kItems[j].accessCount
+				})
+			}
+		} else {
+			// Replace the least frequently used item if we find an item with a lower access count
+			if value.accessCount < kItems[k-1].accessCount {
+				kItems[k-1] = value
+				// Sort the k-items list in ascending order of access count
+				sort.Slice(kItems, func(i, j int) bool {
+					return kItems[i].accessCount < kItems[j].accessCount
+				})
 			}
 		}
-		if leastAccessKey != "" {
-			leastFrequentKeys = append(leastFrequentKeys, leastAccessKey)
+	}
+
+	if len(kItems) == 0 {
+		return fmt.Errorf("cache is empty")
+	}
+
+	// Evict the least recently used item among the K least frequently used items
+	lru := kItems[0]
+	lruKey := ""
+	for key, value := range c.data {
+		if value == lru {
+			lruKey = key
+			break
 		}
 	}
 
-	var leastRecentAccessKey string
-	for key := range c.data {
-		if leastRecentAccessKey == "" || c.data[key].lastAccess.Before(c.data[leastRecentAccessKey].lastAccess) {
-			leastRecentAccessKey = key
+	// remove value from data
+	delete(c.data, lruKey)
+
+	// Remove the key from the keys slice
+	for i, k := range c.keys {
+		if k == lruKey {
+			c.keys = append(c.keys[:i], c.keys[i+1:]...)
+			break
 		}
 	}
 
-	for _, key := range leastFrequentKeys {
-		if key == leastRecentAccessKey {
-			delete(c.data, key)
-
-			return
-		}
-	}
-
-	delete(c.data, leastRecentAccessKey)
-
+	return nil
 }
