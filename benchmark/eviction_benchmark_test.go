@@ -49,3 +49,25 @@ func BenchmarkLRUKEviction(b *testing.B) {
 		cache.Evict()
 	}
 }
+
+func BenchmarkSimpleEviction(b *testing.B) {
+	c := memcache.NewCache(1000, &memcache.SimpleEviction{})
+
+	for i := 0; i < b.N; i++ {
+		// add some random data to the cache
+		key := fmt.Sprintf("key%d", i)
+		value := fmt.Sprintf("value%d", i)
+		c.Set(key, value)
+	}
+}
+
+func BenchmarkRandomEviction(b *testing.B) {
+	c := memcache.NewCache(1000, &memcache.RandomEviction{})
+
+	for i := 0; i < b.N; i++ {
+		// add some random data to the cache
+		key := fmt.Sprintf("key%d", i)
+		value := fmt.Sprintf("value%d", i)
+		c.Set(key, value)
+	}
+}
