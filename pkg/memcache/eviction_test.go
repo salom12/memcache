@@ -123,7 +123,7 @@ func TestRandomEviction_Evict(t *testing.T) {
 
 func TestLRUKEviction(t *testing.T) {
 	// Create a new cache with LRU-K eviction policy
-	cache := NewCache(4, &LRUKEviction{k: 2})
+	cache := NewCache(4, &LRUKEviction{K: 2})
 
 	// Add items to the cache
 	cache.Set("a", 1)
