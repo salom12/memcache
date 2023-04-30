@@ -35,7 +35,7 @@ type Store interface {
 	// Delete must not return error if key does not exist
 	Delete(key string) error
 	// List lists all existing keys.
-	List() ([]string, error)
+	List() ([]any, error)
 }
 
 // ValidateKey returns an error if the given key does not meet the requirement

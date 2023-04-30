@@ -10,6 +10,7 @@ import (
 type Cache struct {
 	Store
 	data    map[string]CacheValue
+	keys    []string // slice of keys in order of insertion.
 	maxSize int
 	mutex   sync.Mutex
 
@@ -89,6 +90,18 @@ func (c *Cache) Set(key string, value any) {
 		accessCount: 1,
 		lastAccess:  now,
 	}
+
+	// Append the key to the keys slice if it doesn't already exist
+	exists := false
+	for _, k := range c.keys {
+		if k == key {
+			exists = true
+			break
+		}
+	}
+	if !exists {
+		c.keys = append(c.keys, key)
+	}
 }
 
 func (c *Cache) Delete(key string) {
@@ -96,6 +109,31 @@ func (c *Cache) Delete(key string) {
 	defer c.mutex.Unlock()
 
 	delete(c.data, key)
+
+	// Remove the key from the keys slice
+	for i, k := range c.keys {
+		if k == key {
+			c.keys = append(c.keys[:i], c.keys[i+1:]...)
+			break
+		}
+	}
+}
+
+func (c *Cache) List() ([]any, error) {
+	data := []any{}
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	for _, key := range c.keys {
+		value, exists := c.data[key]
+		if exists {
+			data = append(data, map[string]any{
+				key: value,
+			})
+		}
+	}
+
+	return data, nil
 }
 
 func (c *Cache) Evict() {
