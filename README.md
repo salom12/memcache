@@ -10,6 +10,11 @@ The currently implemented eviction policies includes:
 - [x] Random
 - [x] LRU-K.
 
+### Install
+```
+go get github.com/salom12/memcache
+```
+
 ### Simple Example
 
 ```go
